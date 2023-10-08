@@ -3,7 +3,7 @@
 #include <vector>
 #include <cstdint>
 #include <string>
-#include "DataStreamConverter.hpp"
+#include "data_stream_converter.hpp"
 
 #define BYTE_STREAM_EXPAND( x ) x
 #define BYTE_STREAM_GET_MACRO(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24, _25, _26, _27, _28, _29, _30, _31, _32, _33, _34, _35, _36, _37, _38, _39, _40, _41, _42, _43, _44, _45, _46, _47, _48, _49, _50, _51, _52, _53, _54, _55, _56, _57, _58, _59, _60, _61, _62, _63, _64, NAME,...) NAME
@@ -138,17 +138,21 @@
 #define BYTE_STREAM_PASTE63(func, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21, v22, v23, v24, v25, v26, v27, v28, v29, v30, v31, v32, v33, v34, v35, v36, v37, v38, v39, v40, v41, v42, v43, v44, v45, v46, v47, v48, v49, v50, v51, v52, v53, v54, v55, v56, v57, v58, v59, v60, v61, v62) BYTE_STREAM_PASTE2(func, v1) BYTE_STREAM_PASTE62(func, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21, v22, v23, v24, v25, v26, v27, v28, v29, v30, v31, v32, v33, v34, v35, v36, v37, v38, v39, v40, v41, v42, v43, v44, v45, v46, v47, v48, v49, v50, v51, v52, v53, v54, v55, v56, v57, v58, v59, v60, v61, v62)
 #define BYTE_STREAM_PASTE64(func, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21, v22, v23, v24, v25, v26, v27, v28, v29, v30, v31, v32, v33, v34, v35, v36, v37, v38, v39, v40, v41, v42, v43, v44, v45, v46, v47, v48, v49, v50, v51, v52, v53, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63) BYTE_STREAM_PASTE2(func, v1) BYTE_STREAM_PASTE63(func, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21, v22, v23, v24, v25, v26, v27, v28, v29, v30, v31, v32, v33, v34, v35, v36, v37, v38, v39, v40, v41, v42, v43, v44, v45, v46, v47, v48, v49, v50, v51, v52, v53, v54, v55, v56, v57, v58, v59, v60, v61, v62, v63)
 
-#define BYTE_STREAM_TO(v1) storeToByteStreamBigEndian(struct_data.v1, byte_stream_data);
+#define BYTE_STREAM_TO(v1) \
+ret = storeToByteStreamBigEndian(struct_data.v1, byte_stream_data); \
+if(!ret){std::cerr << "转换字节流失败" << std::endl;}
+
 #define BYTE_STREAM_FROM(v1) \
-    start_pose = start_pose + end_pose; \
+    start_pose = end_pose; \
     if (std::is_same_v<decltype(struct_data.v1), std::string>){ \
     end_pose = end_pose + (byte_stream_data.size() - struct_size); \
     } else{ \
     end_pose = end_pose +  getStoreByteSize(struct_data.v1); \
     } \
-    storeFromByteStreamBigEndian(struct_data.v1, \
+    ret = storeFromByteStreamBigEndian(struct_data.v1, \
     std::vector<uint8_t>(byte_stream_data.begin()+start_pose, byte_stream_data.begin()+end_pose) \
-    );
+    );\
+    if(!ret){std::cerr << "转换结构体失败" << std::endl;}
 #define STRUCT_SIZE(v1) struct_size = struct_size + getStoreByteSize(struct_data.v1); 
 
 #define PIXMOVING_SERDE_BS_STRUCT(StructType, ...)  \
@@ -157,9 +161,11 @@
         BYTE_STREAM_EXPAND(BYTE_STREAM_PASTE(STRUCT_SIZE, __VA_ARGS__)) \
         return struct_size;} \
     void to_byte_stream(std::vector<uint8_t>&byte_stream_data ,const StructType&struct_data) { \
+        bool ret; \
         byte_stream_data.clear(); \
         BYTE_STREAM_EXPAND(BYTE_STREAM_PASTE(BYTE_STREAM_TO, __VA_ARGS__))} \
     void from_byte_stream(StructType&struct_data, const std::vector<uint8_t>&byte_stream_data) { \
+        bool ret; \
         std::uint16_t start_pose=0; \
         std::uint16_t end_pose=0; \
         std::uint16_t struct_size=get_struct_non_string_size(struct_data); \

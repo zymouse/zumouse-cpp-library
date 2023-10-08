@@ -34,14 +34,14 @@ template <std::size_t N>
 struct is_std_array_of_uint8<std::array<uint8_t, N>> : std::true_type {};
 
 template <typename T>
-void storeToByteStreamBigEndian(const T &data,
+bool storeToByteStreamBigEndian(const T &data,
                                 std::vector<uint8_t> &byteStream) {
   // data 类型是否是 arrry<uint8_t, N> std::string std::vector<uint8_t>
   if constexpr (std::is_same_v<T, std::string> ||
                 std::is_same_v<T, std::vector<uint8_t>> ||
                 is_std_array_of_uint8<T>::value) {
     byteStream.insert(byteStream.end(), data.begin(), data.end());
-    return;
+    return true;
   }
 
   // 基础数据类型
@@ -55,16 +55,20 @@ void storeToByteStreamBigEndian(const T &data,
     } else {
       byteStream.insert(byteStream.end(), bytePtr, bytePtr + sizeof(T));
     }
+    return true;
   } else {
     std::cerr << "[storeToByteStreamBigEndian]不是基础类型, "
                  "std::vector<uint8_t>, string, array<uint8_t, N>:"
               << typeid(T).name()   
               << std::endl;
+    return false;
   }
+
+  return false;
 }
 
 template <typename T>
-void storeFromByteStreamBigEndian(T &data,
+bool storeFromByteStreamBigEndian(T &data,
                                   const std::vector<uint8_t> &byteStream) {
 
   if constexpr (std::is_same_v<T, std::string> ||
@@ -72,12 +76,12 @@ void storeFromByteStreamBigEndian(T &data,
 
     data.resize(byteStream.size());
     std::copy(byteStream.begin(), byteStream.end(), data.begin());
-    return;
+    return true;
   }
   // data 类型是否是 arrry<uint8_t, N>
   if constexpr (is_std_array_of_uint8<T>::value) {
     std::copy(byteStream.begin(), byteStream.end(), data.begin());
-    return;
+    return true;
   }
 
   // 基础数据类型
@@ -86,7 +90,7 @@ void storeFromByteStreamBigEndian(T &data,
       std::cout
           << "Size of byte stream does not match the size of the target type"
           << '\n';
-      return;
+      return false;
     }
     if (isLittleEndian()) {
       std::vector<uint8_t> reversedStream(byteStream.rbegin(),
@@ -96,12 +100,15 @@ void storeFromByteStreamBigEndian(T &data,
     } else {
       std::memcpy(&data, byteStream.data(), sizeof(T));
     }
+    return true;
   } else {
     std::cerr << "[storeFromByteStreamBigEndian]不是基础类型, "
                  "std::vector<uint8_t>, string, array<uint8_t, N>:"
               << typeid(T).name()
               << std::endl;
+    return false;
   }
+  return false;
 }
 
 template <typename T> uint16_t getStoreByteSize(T &data) {

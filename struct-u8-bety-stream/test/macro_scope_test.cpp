@@ -14,7 +14,6 @@ struct Demo01
 PIXMOVING_SERDE_BS_STRUCT(Demo01, message_head, message_body)
 // g++ -E macro_scope_test.cpp -o macro_scope_test.i
 
-
 int main()
 {
     Demo01 demo01;
